@@ -16,11 +16,14 @@ RUN ./mvnw dependency:go-offline -B
 # 複製源代碼
 COPY src ./src
 
+# 複製 OCR 語言包（重要！）
+COPY tessdata ./tessdata
+
 # 打包應用程式
 RUN ./mvnw clean package -DskipTests
 
 # 暴露端口
 EXPOSE 8080
 
-# 運行 JAR 檔案（使用 Render 提供嘅 PORT 環境變數，並綁定到 0.0.0.0）
+# 運行 JAR 檔案
 CMD ["java", "-jar", "-Dserver.port=${PORT}", "-Dserver.address=0.0.0.0", "target/api-0.0.1-SNAPSHOT.jar"]
