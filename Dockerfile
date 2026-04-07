@@ -1,6 +1,9 @@
 # 使用 Eclipse Temurin JDK 17 作為基礎鏡像
 FROM eclipse-temurin:17-jdk-alpine
 
+# 安裝 Tesseract OCR 同中文語言包
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-chi-tra tesseract-ocr-data-eng
+
 # 設定工作目錄
 WORKDIR /app
 
@@ -15,9 +18,6 @@ RUN ./mvnw dependency:go-offline -B
 
 # 複製源代碼
 COPY src ./src
-
-# 複製 OCR 語言包（重要！）
-COPY tessdata ./tessdata
 
 # 打包應用程式
 RUN ./mvnw clean package -DskipTests
