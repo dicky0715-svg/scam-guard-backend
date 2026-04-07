@@ -11,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ocr")
-@CrossOrigin(origins = "http://localhost:8081")
+@CrossOrigin(origins = "*")  // ← 改成咗，允許所有來源
 public class OcrController {
 
     @Autowired
