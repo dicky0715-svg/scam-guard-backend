@@ -1,10 +1,10 @@
-# 使用 OpenJDK 17 作為基礎鏡像
-FROM openjdk:17-jdk-slim
+# 使用 Eclipse Temurin JDK 17 作為基礎鏡像
+FROM eclipse-temurin:17-jdk-alpine
 
 # 設定工作目錄
 WORKDIR /app
 
-# 複製 Maven  wrapper 同 pom.xml
+# 複製 Maven wrapper 同 pom.xml
 COPY .mvn ./.mvn
 COPY mvnw .
 COPY pom.xml .
