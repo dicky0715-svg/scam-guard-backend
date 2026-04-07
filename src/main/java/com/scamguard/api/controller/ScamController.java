@@ -227,6 +227,75 @@ public class ScamController {
                 });
     }
 
+    // ===== OCR 文字修復 API =====
+    @PostMapping("/clean-ocr")
+    public Mono<Map<String, String>> cleanOcrText(@RequestBody Map<String, String> request) {
+        String rawText = request.get("text");
+
+        String cleanPrompt = """
+            你係一位專業嘅文字修復助手，專門處理 OCR 識別錯誤。
+            
+            ===== OCR 常見錯誤類型 =====
+            
+            1. 【空格問題】中文字之間出現不必要嘅空格
+               例子：「你 好 嗎」→「你好嗎」
+               
+            2. 【字形混淆】形狀相似嘅字被認錯
+               請根據上下文推測正確嘅字
+            
+            3. 【標點符號錯誤】全形標點被認錯
+               例子：「˙」→「。」或「，」，「﹕」→「：」
+            
+            4. 【字母數字混淆】例如 O 同 0、l 同 1
+               注意：電話號碼入面嘅數字要保留原樣
+            
+            ===== 修復原則 =====
+            
+            1. 刪除中文字之間嘅多餘空格
+            2. 根據上下文推測正確嘅字詞
+            3. 保持電話號碼、金額、日期嘅數字正確
+            4. 修復後嘅句子必須通順合理
+            5. 如果不確定，保留原文
+            
+            ===== 例子 =====
+            
+            輸入：「蒂 敬 的 用 戶 ， 您 所 訂 的 會 員 服 務 已 續 約」
+            輸出：「尊敬的用戶，您所訂的會員服務已續約」
+            
+            輸入：「升 始 收 單 1560HKD ， 如 需 取 消 致 電 服 務 熱 縫 ﹕ 90323732 x」
+            輸出：「開始收費 1560HKD，如需取消致電服務熱線：90323732」
+            
+            輸入：「帳 戶 異 常 請 點 擊 連 結 h t t p : / / t e s t . x y z」
+            輸出：「帳戶異常請點擊連結 http://test.xyz」
+            
+            ===== 現在請修復以下文字 =====
+            
+            %s
+            """.formatted(rawText);
+
+        ChatRequest chatRequest = new ChatRequest(
+                model,
+                List.of(new ChatMessage("user", cleanPrompt)),
+                0.2,
+                500
+        );
+
+        return openAiWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(chatRequest)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .map(response -> {
+                    String cleaned = response.getFirstReplyContent();
+                    cleaned = cleaned.trim();
+                    return Map.of("cleanedText", cleaned);
+                })
+                .onErrorResume(e -> {
+                    System.err.println("OCR clean error: " + e.getMessage());
+                    return Mono.just(Map.of("cleanedText", rawText));
+                });
+    }
+
     // Fallback 分析（根據ADCC + CyberDefender + 最新釣魚短訊樣本資料庫）
     private Map<String, Object> fallbackAnalyze(String message) {
         Map<String, Object> response = new HashMap<>();
