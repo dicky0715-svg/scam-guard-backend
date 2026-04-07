@@ -1,8 +1,8 @@
 # 使用 Eclipse Temurin JDK 17 作為基礎鏡像
 FROM eclipse-temurin:17-jdk-alpine
 
-# 安裝 Tesseract OCR 同中文語言包
-RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-chi-tra tesseract-ocr-data-eng
+# 安裝 Tesseract OCR 同中文語言包（Alpine 用嘅名稱）
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-chi-sim tesseract-ocr-data-eng
 
 # 設定工作目錄
 WORKDIR /app

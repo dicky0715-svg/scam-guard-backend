@@ -20,8 +20,8 @@ public class OcrService {
         // 使用 Alpine 安裝嘅 Tesseract 默認路徑
         this.tesseract.setDatapath("/usr/share/tessdata/");
 
-        // 設置識別語言：繁體中文 + 英文
-        this.tesseract.setLanguage("chi_tra+eng");
+        // 設置識別語言：簡體中文 + 英文（Alpine 支援嘅組合）
+        this.tesseract.setLanguage("chi_sim+eng");
 
         // OCR 引擎模式
         this.tesseract.setOcrEngineMode(3);
