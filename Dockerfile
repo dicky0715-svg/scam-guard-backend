@@ -22,8 +22,11 @@ RUN chmod +x mvnw
 # 下載依賴
 RUN ./mvnw dependency:go-offline -B
 
-# 複製原始碼同打包（合併指令，確保原始碼喺打包時存在）
+# 複製原始碼
 COPY src ./src
+
+# 強制重新打包（加入 build-arg 強制唔用快取）
+ARG CACHE_BUST
 RUN rm -rf target && ./mvnw clean package -DskipTests
 
 # 暴露端口
