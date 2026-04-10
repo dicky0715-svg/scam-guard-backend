@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")  // ← 改成咗，允許所有來源
+@CrossOrigin(origins = "*")
 public class ScamController {
 
     @Autowired
@@ -37,7 +37,6 @@ public class ScamController {
     public Mono<Map<String, Object>> analyze(@RequestBody Map<String, String> request) {
         String userMessage = request.get("message");
 
-        // 1. 設計 prompt（含ADCC + CyberDefender + 最新釣魚短訊樣本）
         String systemPrompt = """
             你係一位專業嘅香港反詐騙分析師。請根據以下香港警方ADCC、CyberDefender及最新釣魚短訊樣本資料庫分析用戶訊息。
 
@@ -170,7 +169,6 @@ public class ScamController {
             必須使用繁體中文。
             """;
 
-        // 2. 構建請求
         ChatRequest chatRequest = new ChatRequest(
                 model,
                 List.of(
@@ -181,7 +179,6 @@ public class ScamController {
                 500
         );
 
-        // 3. 調用 DeepSeek API
         return openAiWebClient.post()
                 .uri("/chat/completions")
                 .bodyValue(chatRequest)
@@ -194,11 +191,9 @@ public class ScamController {
                     System.out.println("================================");
 
                     try {
-                        // 嘗試解析 JSON
                         Map<String, Object> aiResult = objectMapper.readValue(content, Map.class);
                         System.out.println("成功解析 AI 回應: " + aiResult);
 
-                        // 儲存查詢記錄到 MySQL
                         try {
                             QueryRecord record = new QueryRecord(
                                     userMessage,
@@ -216,7 +211,6 @@ public class ScamController {
                     } catch (Exception e) {
                         System.err.println("JSON 解析失敗: " + e.getMessage());
                         e.printStackTrace();
-                        // 如果解析失敗，用 fallback
                         return fallbackAnalyze(userMessage);
                     }
                 })
@@ -227,7 +221,6 @@ public class ScamController {
                 });
     }
 
-    // ===== OCR 文字修復 API =====
     @PostMapping("/clean-ocr")
     public Mono<Map<String, String>> cleanOcrText(@RequestBody Map<String, String> request) {
         String rawText = request.get("text");
@@ -296,11 +289,9 @@ public class ScamController {
                 });
     }
 
-    // Fallback 分析（根據ADCC + CyberDefender + 最新釣魚短訊樣本資料庫）
     private Map<String, Object> fallbackAnalyze(String message) {
         Map<String, Object> response = new HashMap<>();
 
-        // 定義詐騙手法匹配規則（根據ADCC + CyberDefender + 最新釣魚樣本）
         Map<String, Map<String, Object>> scamDatabase = new HashMap<>();
 
         // ===== 1. 釣魚短訊類 (ADCC) =====
@@ -713,6 +704,20 @@ public class ScamController {
         } else {
             response.put("riskLevel", "LOW");
             response.put("matchedCase", "無匹配案例");
+
+            // 互動式風險評估問題
+            String riskQuestions = """
+                ⚠️ 雖然系統未發現明顯詐騙特徵，但為咗更安全，請回答以下問題：
+                
+                1️⃣ 訊息係咪叫你**立即**採取行動，否則會有壞後果？
+                2️⃣ 訊息係咪要求你提供**個人敏感資料**（例如密碼、身份證號碼）？
+                3️⃣ 發訊息嘅人你係咪認識？
+                4️⃣ 訊息係咪叫你**點擊連結**、**下載App**或**轉賬**？
+                
+                如果任何一條問題嘅答案係「是」，請小心！好大機會係詐騙，立即停止回應。
+                如有疑問，可致電防騙易熱線：18222
+                """;
+            response.put("riskQuestions", riskQuestions);
         }
 
         response.put("scamType", matchedType);
