@@ -11,19 +11,14 @@ RUN wget -P /usr/share/tessdata/ https://github.com/tesseract-ocr/tessdata/raw/m
 # 設定工作目錄
 WORKDIR /app
 
-# 複製 Maven wrapper 同 pom.xml
-COPY .mvn ./.mvn
-COPY mvnw .
-COPY pom.xml .
+# 複製所有檔案
+COPY . .
 
-# 複製源代碼 (必須喺打包指令之前)
-COPY src ./src
-
-# 下載依賴同打包應用程式
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+# 確保 mvnw 可執行
+RUN chmod +x mvnw
 
 # 暴露端口
 EXPOSE 8080
 
-# 運行 JAR 檔案
-CMD ["java", "-jar", "-Dserver.port=${PORT}", "-Dserver.address=0.0.0.0", "target/api-0.0.1-SNAPSHOT.jar"]
+# 直接用 Maven 運行（唔需要預先打包）
+CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-Dserver.port=${PORT} -Dserver.address=0.0.0.0"]
