@@ -289,6 +289,131 @@ public class ScamController {
                 });
     }
 
+    @PostMapping("/assess-risk")
+    public Mono<Map<String, Object>> assessRisk(@RequestBody Map<String, Object> request) {
+        @SuppressWarnings("unchecked")
+        List<String> answers = (List<String>) request.get("answers");
+
+        // 風險分數計算
+        int riskScore = 0;
+        List<String> riskReasons = new ArrayList<>();
+
+        if (answers != null && answers.size() >= 5) {
+            // Q1: 急迫性 (0=冇, 1=有)
+            if ("1".equals(answers.get(0))) {
+                riskScore += 20;
+                riskReasons.add("⚠️ 訊息製造緊急氣氛，企圖令你無法冷靜思考");
+            }
+
+            // Q2: 敏感資料要求（多選）
+            String sensitiveStr = answers.get(1);
+            if (sensitiveStr != null && !sensitiveStr.isEmpty()) {
+                String[] sensitiveItems = sensitiveStr.split(",");
+                for (String item : sensitiveItems) {
+                    switch (item) {
+                        case "password":
+                            riskScore += 30;
+                            riskReasons.add("🔐 要求提供密碼/OTP驗證碼 - 正規機構唔會咁做");
+                            break;
+                        case "id":
+                            riskScore += 15;
+                            riskReasons.add("🆔 要求提供身份證號碼/銀行戶口號碼");
+                            break;
+                        case "credit":
+                            riskScore += 25;
+                            riskReasons.add("💳 要求提供信用卡資料");
+                            break;
+                        case "transfer":
+                            riskScore += 30;
+                            riskReasons.add("💰 要求轉賬到指定戶口");
+                            break;
+                        case "link":
+                            riskScore += 20;
+                            riskReasons.add("🔗 要求點擊連結或下載App");
+                            break;
+                    }
+                }
+            }
+
+            // Q3: 聲稱機構（多選）
+            String orgStr = answers.get(2);
+            if (orgStr != null && !orgStr.isEmpty() && !"none".equals(orgStr)) {
+                riskScore += 15;
+                riskReasons.add("🏢 訊息聲稱來自官方機構，但可能係偽冒");
+            }
+
+            // Q4: 可疑特徵（多選）
+            String suspiciousStr = answers.get(3);
+            if (suspiciousStr != null && !suspiciousStr.isEmpty()) {
+                String[] suspiciousItems = suspiciousStr.split(",");
+                for (String item : suspiciousItems) {
+                    switch (item) {
+                        case "investment":
+                            riskScore += 20;
+                            riskReasons.add("📈 聲稱高回報投資機會");
+                            break;
+                        case "prize":
+                            riskScore += 15;
+                            riskReasons.add("🎁 聲稱中獎或有退款");
+                            break;
+                        case "abnormal":
+                            riskScore += 15;
+                            riskReasons.add("⚠️ 聲稱帳戶異常或即將到期");
+                            break;
+                        case "secret":
+                            riskScore += 20;
+                            riskReasons.add("🤫 要求保密，唔好同其他人講");
+                            break;
+                        case "urgent":
+                            riskScore += 10;
+                            riskReasons.add("📞 語氣緊急，叫你唔好收線");
+                            break;
+                    }
+                }
+            }
+
+            // Q5: 與發訊人關係
+            String relation = answers.get(4);
+            if ("0".equals(relation)) {
+                riskScore += 25;
+                riskReasons.add("👤 完全唔認識發訊人");
+            } else if ("1".equals(relation)) {
+                riskScore += 15;
+                riskReasons.add("⚠️ 認識但對方突然用新號碼/新帳戶 - 可能係帳戶被騎劫");
+            } else {
+                riskReasons.add("✅ 係認識嘅正常聯絡人");
+            }
+        }
+
+        // 決定風險等級
+        String finalRiskLevel;
+        if (riskScore >= 50) {
+            finalRiskLevel = "HIGH";
+        } else if (riskScore >= 20) {
+            finalRiskLevel = "MEDIUM";
+        } else {
+            finalRiskLevel = "LOW";
+        }
+
+        // 總結建議
+        String summaryAdvice;
+        if (finalRiskLevel.equals("HIGH")) {
+            summaryAdvice = "⚠️ 高風險！建議立即停止回應，切勿提供任何資料或轉賬。如有疑問，請致電防騙易熱線18222。";
+        } else if (finalRiskLevel.equals("MEDIUM")) {
+            summaryAdvice = "⚠️ 中風險！訊息有可疑特徵，建議先向官方渠道核實，切勿急於行動。";
+        } else {
+            summaryAdvice = "✅ 低風險。但仍需保持警覺，如有懷疑可致電18222查詢。";
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("riskLevel", finalRiskLevel);
+        result.put("riskScore", riskScore);
+        result.put("riskReasons", riskReasons);
+        result.put("advice", summaryAdvice);
+
+        return Mono.just(result);
+    }
+
     private Map<String, Object> fallbackAnalyze(String message) {
         Map<String, Object> response = new HashMap<>();
 
