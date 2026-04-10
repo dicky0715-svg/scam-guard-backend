@@ -11,7 +11,7 @@ RUN wget -P /usr/share/tessdata/ https://github.com/tesseract-ocr/tessdata/raw/m
 # 設定工作目錄
 WORKDIR /app
 
-# 複製所有必要檔案
+# 複製 Maven wrapper 同 pom.xml
 COPY .mvn ./.mvn
 COPY mvnw .
 COPY pom.xml .
@@ -19,13 +19,11 @@ COPY pom.xml .
 # 確保 mvnw 可執行
 RUN chmod +x mvnw
 
-# 先下載依賴，避免後續編譯時再下載
+# 下載依賴
 RUN ./mvnw dependency:go-offline -B
 
-# 複製原始碼（一定要喺打包指令之前）
+# 複製原始碼同打包（合併指令，確保原始碼喺打包時存在）
 COPY src ./src
-
-# 強制刪除舊嘅 target 目錄（如果有），然後重新打包
 RUN rm -rf target && ./mvnw clean package -DskipTests
 
 # 暴露端口
