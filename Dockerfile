@@ -17,8 +17,9 @@ COPY . .
 # 確保 mvnw 可執行
 RUN chmod +x mvnw
 
-# 顯示 Maven 詳細錯誤（-e 顯示錯誤堆疊，-X 顯示 debug 信息）
-RUN ./mvnw clean package -DskipTests -e -X
+# 強制重新打包（使用 build-arg 強制唔用快取）
+ARG CACHE_BUST
+RUN ./mvnw clean package -DskipTests
 
 # 暴露端口
 EXPOSE 8080
