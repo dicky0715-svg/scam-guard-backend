@@ -17,8 +17,11 @@ COPY . .
 # 確保 mvnw 可執行
 RUN chmod +x mvnw
 
+# 強制打包成 JAR 檔案
+RUN ./mvnw clean package -DskipTests
+
 # 暴露端口
 EXPOSE 8080
 
-# 直接用 Maven 運行（唔需要預先打包）
-CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-Dserver.port=${PORT} -Dserver.address=0.0.0.0"]
+# 用 java -jar 運行 JAR 檔案（確保進程持續運行）
+CMD ["java", "-jar", "-Dserver.port=${PORT}", "-Dserver.address=0.0.0.0", "target/api-0.0.1-SNAPSHOT.jar"]
