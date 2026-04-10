@@ -16,15 +16,11 @@ COPY .mvn ./.mvn
 COPY mvnw .
 COPY pom.xml .
 
-# 下載依賴
-RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B
+# 下載依賴同打包應用程式（合併指令，確保 JAR 正確產生）
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
 # 複製源代碼
 COPY src ./src
-
-# 打包應用程式
-RUN ./mvnw clean package -DskipTests
 
 # 暴露端口
 EXPOSE 8080
