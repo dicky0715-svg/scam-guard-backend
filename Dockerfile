@@ -16,11 +16,11 @@ COPY .mvn ./.mvn
 COPY mvnw .
 COPY pom.xml .
 
-# 下載依賴同打包應用程式（合併指令，確保 JAR 正確產生）
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
-
-# 複製源代碼
+# 複製源代碼 (必須喺打包指令之前)
 COPY src ./src
+
+# 下載依賴同打包應用程式
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
 # 暴露端口
 EXPOSE 8080
