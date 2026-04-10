@@ -1,5 +1,5 @@
 # 使用 Eclipse Temurin JDK 17 作為基礎鏡像
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jdk-alpine AS build
 
 # 安裝 Tesseract OCR 同必要工具
 RUN apk add --no-cache tesseract-ocr wget
@@ -11,14 +11,19 @@ RUN wget -P /usr/share/tessdata/ https://github.com/tesseract-ocr/tessdata/raw/m
 # 設定工作目錄
 WORKDIR /app
 
-# 複製所有檔案
-COPY . .
+# 只複製 Maven wrapper 同 pom.xml
+COPY .mvn ./.mvn
+COPY mvnw .
+COPY pom.xml .
 
-# 確保 mvnw 可執行
+# 下載依賴
 RUN chmod +x mvnw
+RUN ./mvnw dependency:go-offline -B
 
-# 強制重新打包（使用 build-arg 強制唔用快取）
-ARG CACHE_BUST
+# 複製源代碼（唔會複製 .git, node_modules 等）
+COPY src ./src
+
+# 打包應用程式
 RUN ./mvnw clean package -DskipTests
 
 # 暴露端口
