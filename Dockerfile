@@ -17,11 +17,11 @@ COPY . .
 # 確保 mvnw 可執行
 RUN chmod +x mvnw
 
-# 強制打包成 JAR 檔案
-RUN ./mvnw clean package -DskipTests
+# 打包成 JAR 檔案，並列出 target 資料夾內容（除錯用）
+RUN ./mvnw clean package -DskipTests && ls -la target/
 
 # 暴露端口
 EXPOSE 8080
 
-# 用 java -jar 運行 JAR 檔案（確保進程持續運行）
+# 用 java -jar 運行 JAR 檔案（假設佢喺 target 入面）
 CMD ["java", "-jar", "-Dserver.port=${PORT}", "-Dserver.address=0.0.0.0", "target/api-0.0.1-SNAPSHOT.jar"]
