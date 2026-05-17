@@ -37,6 +37,45 @@ public class ScamController {
     public Mono<Map<String, Object>> analyze(@RequestBody Map<String, String> request) {
         String userMessage = request.get("message");
 
+        // ===== 1. Prompt Injection 過濾 =====
+        List<String> injectionKeywords = List.of(
+                "ignore previous", "disregard", "you are now",
+                "system prompt", "forget your", "DAN", "jailbreak",
+                "忽略", "忘記", "你現在是", "不要理會", "忽略之前"
+        );
+
+        String lowerMessage = userMessage.toLowerCase();
+        for (String keyword : injectionKeywords) {
+            if (lowerMessage.contains(keyword.toLowerCase())) {
+                // 偵測到 injection 嘗試，直接拒絕
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("riskLevel", "HIGH");
+                errorResponse.put("scamType", "可疑內容");
+                errorResponse.put("advice", List.of(
+                        "⚠️ 你的訊息包含可疑內容，已被系統攔截。",
+                        "請輸入正常嘅訊息內容進行分析。",
+                        "如有疑問，可致電防騙易熱線：18222"
+                ));
+                errorResponse.put("explanation", "系統偵測到可能嘅 prompt injection 嘗試");
+                errorResponse.put("confidence", 0.95);
+                return Mono.just(errorResponse);
+            }
+        }
+
+        // ===== 2. 限制輸入長度 =====
+        if (userMessage.length() > 2000) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("riskLevel", "MEDIUM");
+            errorResponse.put("scamType", "輸入過長");
+            errorResponse.put("advice", List.of(
+                    "⚠️ 你輸入嘅訊息太長（超過 2000 字），請縮短後再試。",
+                    "建議只貼上可疑嘅訊息內容，唔好包含其他無關文字。"
+            ));
+            errorResponse.put("explanation", "輸入長度超過系統限制");
+            errorResponse.put("confidence", 0.95);
+            return Mono.just(errorResponse);
+        }
+
         String systemPrompt = """
             你係一位專業嘅香港反詐騙分析師。請根據以下香港警方ADCC、CyberDefender及最新釣魚短訊樣本資料庫分析用戶訊息。
 
